@@ -29,8 +29,6 @@ void _server_api_post() {
     return;
   }
 
-  // JsonObject::containsKey()
-
   // --- Color ---
   if(root.containsKey("color")){
     JsonObject& color = root["color"];
