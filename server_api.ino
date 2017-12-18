@@ -6,7 +6,7 @@ void _server_api_get() {
 
   // --- Color ---
 
-  JsonArray& color = root.createNestedObject("color");
+  JsonObject& color = root.createNestedObject("color");
 
   color["red"] = led_red();
   color["green"] = led_green();
@@ -16,7 +16,10 @@ void _server_api_get() {
 
   String content;
   root.printTo(content);
-  server.send(200, HTTP_APPLICATION_JSON, content);
+
+  // --- send ---
+  
+  server_send(200, HTTP_APPLICATION_JSON, content);
 }
 
 void _server_api_post() {
@@ -43,10 +46,11 @@ void _server_api_post() {
 }
 
 void server_api_handle() {
+  led_status_on();
   HTTPMethod method = server.method();
   if(method == HTTP_GET){
     _server_api_get();
-  } else if(metho == HTTP_POST){
+  } else if(method == HTTP_POST){
     _server_api_post();
   }
 }

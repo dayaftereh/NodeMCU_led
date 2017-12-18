@@ -1,9 +1,11 @@
 #include <ESP8266WiFi.h>
+#include <WiFiClient.h>
 
 void wifi_init() {
   Serial.print("connecting to wifi: ");
   Serial.println(WIFI_SSID);
 
+  WiFi.mode(WIFI_STA);
   WiFi.begin(WIFI_SSID, WIFI_PASSWD);
   wifi_wait_for_connected();
 

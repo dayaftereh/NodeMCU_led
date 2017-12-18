@@ -7,8 +7,10 @@ void led_init() {
   pinMode(LED_RED_PIN, OUTPUT);
   pinMode(LED_GREEN_PIN, OUTPUT);
   pinMode(LED_BLUE_PIN, OUTPUT);
+  pinMode(LED_STATUS, OUTPUT);
 
   led_print_gpios();
+  led_status_off();
 }
 
 void led_print_gpios(){
@@ -19,6 +21,9 @@ void led_print_gpios(){
   Serial.print(", blue: ");
   Serial.print(LED_BLUE_PIN);
   Serial.println(" ]");
+
+  Serial.print("status led: ");
+  Serial.println(LED_STATUS);
 }
 
 int led_value_to_pwm(int value){
@@ -55,3 +60,12 @@ void led_write_values(){
   int blue_pwm = led_value_to_pwm(_blue_value);
   analogWrite(LED_BLUE_PIN, blue_pwm);
 }
+
+void led_status_off(){
+  digitalWrite(LED_STATUS, HIGH);
+}
+
+void led_status_on(){
+  digitalWrite(LED_STATUS, LOW);
+}
+
