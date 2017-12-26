@@ -1,105 +1,143 @@
 <!doctype html>
 <html lang="de">
-  <head>
-    <title>LED-Color</title>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
-    <script>
-      function getColor(callback){
-        $.get("/api", function(data, status){
-          console.log(data, status);
-          if(data && data["color"]){
-            callback(data["color"]);
-          }
-        });
-      }
 
-      function setColor(color, callback){
-        var data = JSON.stringify({
-          color: color
-        });
+<head>
+  <title>LED-Control</title>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-beta.2/css/bootstrap.min.css">
+</head>
 
-        $.post("/api", data, function(data, status){
-          console.log(data, status);
-        });
-      }
+<body>
+  <div class="container" id="rootContainer">
+    <div class="row">
+      <div class="col-12">
+        <canvas id="canvas" height="155"></canvas>
 
-      function getCanvasColor(event){
-        var canvas = $('#canvas');
-        var y = event.pageY - canvas.offset().top;
-        var x = event.pageX - canvas.offset().left;
-
-        var element = canvas[0];
-        var ctx = element.getContext('2d');
-        var imageData = ctx.getImageData(x, y, 1, 1);
-
-        return {
-          red: imageData.data[0],
-          green: imageData.data[1],
-          blue: imageData.data[2],
-        };
-      }
-
-      function render() {
-        var canvas = $('#canvas');
-        var element = canvas[0];
-        var ctx = element.getContext('2d');
-
-        var gradient = ctx.createLinearGradient(0,0, canvas.width(), 0);
-
-        gradient.addColorStop(0,    "rgb(255,   0,   0)");
-        gradient.addColorStop(0.15, "rgb(255,   0, 255)");
-        gradient.addColorStop(0.33, "rgb(0,     0, 255)");
-        gradient.addColorStop(0.49, "rgb(0,   255, 255)");
-        gradient.addColorStop(0.67, "rgb(0,   255,   0)");
-        gradient.addColorStop(0.84, "rgb(255, 255,   0)");
-        gradient.addColorStop(1,    "rgb(255,   0,   0)");
-
-        ctx.fillStyle = gradient;
-        ctx.fillRect(0, 0, element.width, element.height);
-
-        var semiTransGradient = ctx.createLinearGradient(0, 0, 0, canvas.height());
-        semiTransGradient.addColorStop(0,   "rgba(255, 255, 255, 1)");
-        semiTransGradient.addColorStop(0.5, "rgba(255, 255, 255, 0)");
-        semiTransGradient.addColorStop(0.5, "rgba(0,     0,   0, 0)");
-        semiTransGradient.addColorStop(1,   "rgba(0,     0,   0, 1)");
-
-        ctx.fillStyle = semiTransGradient;
-        ctx.fillRect(0, 0, element.width, element.height);
-      }
-
-      function setSelectedColor(color){
-        var rgb = "rgb(" + color.red + "," + color.green + ","+ color.blue + ")";
-        var element = $("#selected");
-        element.css("width", "50px");
-        element.css("height", "50px");
-        element.css("background-color", rgb);
-      }
-
-      $(document).ready(function() {
-        render();
-        
-        setSelectedColor({
-          red: 0,
-          green: 0,
-          blue: 0
-        });
-
-        $('#canvas').mousedown(function(e) {
-          var color = getCanvasColor(e);
-          setSelectedColor(color);
-          setColor(color);
-        });
-
-        getColor(function (color){
-          setSelectedColor(color);
-        });
+      </div>
+    </div>
+    <div class="row">
+      <div class="col-4">
+        <div id="selected"></div>
+      </div>
+      <div class="col-4">
+        <button id="offButton" type="button" class="btn btn-danger">Off</button>
+      </div>
+    </div>
+  </div>
+  <script src="https://code.jquery.com/jquery-3.2.1.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.3/umd/popper.min.js"></script>
+  <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-beta.2/js/bootstrap.min.js"></script>
+  <script>
+    function getColor(callback) {
+      $.get("/api").done(function (data) {
+        if (data && data["color"]) {
+          callback(data["color"]);
+        }
       });
-    </script>
-  </head>
-  <body>
-    <canvas id="canvas" width="284" height="155"></canvas>
-    <div id="selected"></div>
-  </body>
+    }
+
+    function setColor(color, callback) {
+      var data = JSON.stringify({
+        color: color
+      });
+
+      $.post("/api", data).done(function (data, status) {
+        console.log(data, status);
+      });
+    }
+
+    function getCanvasColor(event) {
+      var canvas = $('#canvas');
+      var y = event.pageY - canvas.offset().top;
+      var x = event.pageX - canvas.offset().left;
+
+      var element = canvas[0];
+      var ctx = element.getContext('2d');
+      var imageData = ctx.getImageData(x, y, 1, 1);
+
+      return {
+        red: imageData.data[0],
+        green: imageData.data[1],
+        blue: imageData.data[2],
+      };
+    }
+
+    function render() {
+      var canvas = $('#canvas');
+      var element = canvas[0];
+      var ctx = element.getContext('2d');
+
+      var gradient = ctx.createLinearGradient(0, 0, canvas.width(), 0);
+
+      gradient.addColorStop(0, "rgb(255,   0,   0)");
+      gradient.addColorStop(0.15, "rgb(255,   0, 255)");
+      gradient.addColorStop(0.33, "rgb(0,     0, 255)");
+      gradient.addColorStop(0.49, "rgb(0,   255, 255)");
+      gradient.addColorStop(0.67, "rgb(0,   255,   0)");
+      gradient.addColorStop(0.84, "rgb(255, 255,   0)");
+      gradient.addColorStop(1, "rgb(255,   0,   0)");
+
+      ctx.fillStyle = gradient;
+      ctx.fillRect(0, 0, element.width, element.height);
+
+      var semiTransGradient = ctx.createLinearGradient(0, 0, 0, canvas.height());
+      semiTransGradient.addColorStop(0, "rgba(255, 255, 255, 1)");
+      semiTransGradient.addColorStop(0.5, "rgba(255, 255, 255, 0)");
+      semiTransGradient.addColorStop(0.5, "rgba(0,     0,   0, 0)");
+      semiTransGradient.addColorStop(1, "rgba(0,     0,   0, 1)");
+
+      ctx.fillStyle = semiTransGradient;
+      ctx.fillRect(0, 0, element.width, element.height);
+    }
+
+    function setSelectedColor(color) {
+      var rgb = "rgb(" + color.red + "," + color.green + "," + color.blue + ")";
+      var element = $("#selected");
+      element.css("width", "50px");
+      element.css("height", "50px");
+      element.css("background-color", rgb);
+    }
+
+    function updateCanvas() {
+      var width = $("#rootContainer").width();
+      var height = $(window).height();
+      $('#canvas').attr("width", width);
+      $('#canvas').attr("height", height * 0.8)
+      render();
+    }
+
+    $(document).ready(function () {
+      updateCanvas();
+      $(window).resize(function () {
+
+        updateCanvas();
+
+      });
+
+      $("#offButton").click(function () {
+        var color = { red: 0, green: 0, blue: 0 };
+        setSelectedColor(color);
+        setColor(color);
+      });
+
+      setSelectedColor({
+        red: 0, green: 0, blue: 0
+      });
+
+      $('#canvas').mousedown(function (e) {
+        var color = getCanvasColor(e);
+        setSelectedColor(color);
+        setColor(color);
+      });
+
+      getColor(function (color) {
+        setSelectedColor(color);
+      });
+
+
+    });
+  </script>
+</body>
+
 </html>
