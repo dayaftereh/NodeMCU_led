@@ -15,4 +15,5 @@ void setup() {
 void loop() {
   server_loop();
   led_write_values();
+  led_fading_update();
 }

@@ -13,15 +13,25 @@
     <div class="row">
       <div class="col-12">
         <canvas id="canvas" height="155"></canvas>
-
+      </div>
+    </div>
+    <div class="row">
+      <div class="col-6">
+        <p id="color1"></p>
+      </div>
+      <div class="col-6 text-right">
+        <p id="color2"></p>
       </div>
     </div>
     <div class="row">
       <div class="col-4">
-        <div id="selected"></div>
+        <button id="offButton" type="button" class="btn btn-dark btn-block">Off</button>
       </div>
       <div class="col-4">
-        <button id="offButton" type="button" class="btn btn-danger">Off</button>
+        <button id="fadingButton" type="button" class="btn btn-primary btn-block">Fading</button>
+      </div>
+      <div class="col-4">
+        <button id="randomButton" type="button" class="btn btn-secondary btn-block">Random</button>
       </div>
     </div>
   </div>
@@ -29,113 +39,196 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.3/umd/popper.min.js"></script>
   <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-beta.2/js/bootstrap.min.js"></script>
   <script>
-    function getColor(callback) {
-      $.get("/api").done(function (data) {
-        if (data && data["color"]) {
-          callback(data["color"]);
+    var app = {
+      toggle: 0,
+      BLACK: { red: 0, green: 0, blue: 0 },
+      server: {
+        color: { red: 0, green: 0, blue: 0 },
+        fading: {
+          running: false,
+          color1: { red: 0, green: 0, blue: 0 },
+          color2: { red: 0, green: 0, blue: 0 }
+        }
+      }
+    };
+
+    app.init = function () {
+      var canvas = $('#canvas');
+      app["canvas"] = canvas;
+      app["element"] = canvas[0];
+
+      var ctx = app.element.getContext('2d');
+      app["ctx"] = ctx;
+
+      app.load(function () {
+        if (app.server.fading.running) {
+          app.setSelectedColor1(app.server.fading.color1);
+          app.setSelectedColor2(app.server.fading.color2);
+        } else {
+          app.setSelectedColor1(app.server.color);
         }
       });
     }
 
-    function setColor(color, callback) {
-      var data = JSON.stringify({
-        color: color
-      });
-
-      $.post("/api", data).done(function (data, status) {
-        console.log(data, status);
-      });
-    }
-
-    function getCanvasColor(event) {
-      var canvas = $('#canvas');
-      var y = event.pageY - canvas.offset().top;
-      var x = event.pageX - canvas.offset().left;
-
-      var element = canvas[0];
-      var ctx = element.getContext('2d');
-      var imageData = ctx.getImageData(x, y, 1, 1);
-
-      return {
-        red: imageData.data[0],
-        green: imageData.data[1],
-        blue: imageData.data[2],
-      };
-    }
-
-    function render() {
-      var canvas = $('#canvas');
-      var element = canvas[0];
-      var ctx = element.getContext('2d');
-
-      var gradient = ctx.createLinearGradient(0, 0, canvas.width(), 0);
-
-      gradient.addColorStop(0, "rgb(255,   0,   0)");
-      gradient.addColorStop(0.15, "rgb(255,   0, 255)");
-      gradient.addColorStop(0.33, "rgb(0,     0, 255)");
-      gradient.addColorStop(0.49, "rgb(0,   255, 255)");
-      gradient.addColorStop(0.67, "rgb(0,   255,   0)");
-      gradient.addColorStop(0.84, "rgb(255, 255,   0)");
-      gradient.addColorStop(1, "rgb(255,   0,   0)");
-
-      ctx.fillStyle = gradient;
-      ctx.fillRect(0, 0, element.width, element.height);
-
-      var semiTransGradient = ctx.createLinearGradient(0, 0, 0, canvas.height());
-      semiTransGradient.addColorStop(0, "rgba(255, 255, 255, 1)");
-      semiTransGradient.addColorStop(0.5, "rgba(255, 255, 255, 0)");
-      semiTransGradient.addColorStop(0.5, "rgba(0,     0,   0, 0)");
-      semiTransGradient.addColorStop(1, "rgba(0,     0,   0, 1)");
-
-      ctx.fillStyle = semiTransGradient;
-      ctx.fillRect(0, 0, element.width, element.height);
-    }
-
-    function setSelectedColor(color) {
-      var rgb = "rgb(" + color.red + "," + color.green + "," + color.blue + ")";
-      var element = $("#selected");
-      element.css("width", "50px");
-      element.css("height", "50px");
-      element.css("background-color", rgb);
-    }
-
-    function updateCanvas() {
-      var width = $("#rootContainer").width();
-      var height = $(window).height();
-      $('#canvas').attr("width", width);
-      $('#canvas').attr("height", height * 0.8)
-      render();
-    }
-
-    $(document).ready(function () {
-      updateCanvas();
-      $(window).resize(function () {
-
-        updateCanvas();
-
-      });
+    app.initUI = function () {
+      app.resize();
+      app.render();
 
       $("#offButton").click(function () {
-        var color = { red: 0, green: 0, blue: 0 };
-        setSelectedColor(color);
-        setColor(color);
+        var color = app.BLACK;
+        app.server.color = color;
+        app.server.fading.running = false;
+
+        app.setSelectedColor1(color);
+        app.setSelectedColor2(color);
+        app.commit();
       });
 
-      setSelectedColor({
-        red: 0, green: 0, blue: 0
+      $("#fadingButton").click(function () {
+        app.server.fading.running = !app.server.fading.running;
+        app.commit();
+      });
+
+      $("#randomButton").click(function () {
+        app.randomColor();
+      });
+
+      app.setSelectedColor1(app.BLACK);
+      app.setSelectedColor2(app.BLACK);
+
+      $(window).resize(function () {
+        app.resize();
+        app.render();
       });
 
       $('#canvas').mousedown(function (e) {
-        var color = getCanvasColor(e);
-        setSelectedColor(color);
-        setColor(color);
+        var color = app.getCanvasColor(e);
+        app.changeColor(color);
       });
+    }
 
-      getColor(function (color) {
-        setSelectedColor(color);
+    app.randomColor = function () {
+      var red = Math.floor(Math.random() * 256);
+      var green = Math.floor(Math.random() * 256);
+      var blue = Math.floor(Math.random() * 256);
+      var color = { red: red, green: green, blue: blue };
+      app.changeColor(color);
+    }
+
+    app.changeColor = function (color) {
+      app.server.color = color;
+
+      if (app.server.fading.running) {
+        if (app.toggle % 2 === 0) {
+          app.server.fading.color1 = color;
+          app.setSelectedColor1(color);
+        } else {
+          app.server.fading.color2 = color;
+          app.setSelectedColor2(color);
+        }
+        app.toggle++;
+      } else {
+        app.setSelectedColor1(color);
+      }
+
+      app.commit();
+    }
+
+    app.toRGB = function (red, green, blue) {
+      return "rgb(" + red + ", " + green + ", " + blue + ")";
+    }
+
+    app.toRGBA = function (red, green, blue, alpha) {
+      return "rgba(" + red + ", " + green + ", " + blue + ", " + alpha + ")";
+    }
+
+    app.toColor = function (red, green, blue) {
+      return { red: red, green: green, blue: blue };
+    }
+
+    app.getCanvasColor = function (event) {
+      var y = event.pageY - app.canvas.offset().top;
+      var x = event.pageX - app.canvas.offset().left;
+      var img = app.ctx.getImageData(x, y, 1, 1);
+      var color = app.toColor(img.data[0], img.data[1], img.data[2]);
+      return color;
+    }
+
+    app.render = function () {
+      var width = app.canvas.width();
+      var height = app.canvas.height();
+
+      var gradient = app.ctx.createLinearGradient(0, 0, width, 0);
+
+      gradient.addColorStop(0, app.toRGB(255, 0, 0));
+      gradient.addColorStop(0.15, app.toRGB(255, 0, 255));
+      gradient.addColorStop(0.33, app.toRGB(0, 0, 255));
+      gradient.addColorStop(0.49, app.toRGB(0, 255, 255));
+      gradient.addColorStop(0.67, app.toRGB(0, 255, 0));
+      gradient.addColorStop(0.84, app.toRGB(255, 255, 0));
+      gradient.addColorStop(1, app.toRGB(255, 0, 0));
+
+      app.ctx.fillStyle = gradient;
+      app.ctx.fillRect(0, 0, width, height);
+
+      var semiTransGradient = app.ctx.createLinearGradient(0, 0, 0, height);
+      semiTransGradient.addColorStop(0, app.toRGBA(255, 255, 255, 1));
+      semiTransGradient.addColorStop(0.5, app.toRGBA(255, 255, 255, 0));
+      semiTransGradient.addColorStop(0.5, app.toRGBA(0, 0, 0, 0));
+      semiTransGradient.addColorStop(1, app.toRGBA(0, 0, 0, 1));
+
+      app.ctx.fillStyle = semiTransGradient;
+      app.ctx.fillRect(0, 0, width, height);
+    }
+
+    app.resize = function () {
+      var width = $("#rootContainer").width();
+      var height = $(window).height();
+
+      app.canvas.attr("width", width);
+      app.canvas.attr("height", height * 0.8)
+    }
+
+    app.commit = function (callback) {
+      if (!app["server"]) {
+        callback();
+        return;
+      }
+
+      var data = JSON.stringify(app["server"]);
+      $.post("/api", data).done(function (data, status) {
+        if (callback) {
+          callback();
+        }
       });
+    }
 
+    app.load = function (callback) {
+      $.get("/api").done(function (data) {
+        if (data) {
+          app["server"] = data;
+          if (callback) {
+            callback();
+          }
+        }
+      });
+    }
 
+    app.setSelectedColor1 = function (color) {
+      var rgb = app.toRGB(color.red, color.green, color.blue);
+      $("#color1").css("background-color", rgb);
+      $("#color1").text([color.red, color.green, color.blue].join(","));
+    }
+
+    app.setSelectedColor2 = function (color) {
+      var rgb = app.toRGB(color.red, color.green, color.blue);
+      $("#color2").css("background-color", rgb);
+      $("#color2").text([color.red, color.green, color.blue].join(","));
+    }
+
+    $(document).ready(function () {
+      app.init();
+      app.initUI();
     });
   </script>
 </body>
