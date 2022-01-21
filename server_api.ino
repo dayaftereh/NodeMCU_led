@@ -1,12 +1,11 @@
 #include <ArduinoJson.h>
 
 void _server_api_get() {
-  DynamicJsonBuffer jsonBuffer;
-  JsonObject& root = jsonBuffer.createObject();
+  DynamicJsonDocument root(1024);
 
   // --- Color ---
 
-  JsonObject& color = root.createNestedObject("color");
+  JsonObject color = root.createNestedObject("color");
 
   color["red"] = led_red();
   color["green"] = led_green();
@@ -14,16 +13,16 @@ void _server_api_get() {
 
   // --- fading ---
 
-  JsonObject& fading = root.createNestedObject("fading");
+  JsonObject fading = root.createNestedObject("fading");
 
   fading["running"] = led_fading_running;
   
-  JsonObject& color1 = fading.createNestedObject("color1");
+  JsonObject color1 = fading.createNestedObject("color1");
   color1["red"] = led_fading_color_1[0];
   color1["green"] = led_fading_color_1[1];
   color1["blue"] = led_fading_color_1[2];
 
-  JsonObject& color2 = fading.createNestedObject("color2");
+  JsonObject color2 = fading.createNestedObject("color2");
   color2["red"] = led_fading_color_2[0];
   color2["green"] = led_fading_color_2[1];
   color2["blue"] = led_fading_color_2[2];
@@ -31,7 +30,7 @@ void _server_api_get() {
   // --- Output ---
 
   String content;
-  root.printTo(content);
+  serializeJson(root, content);
 
   // --- send ---
   
@@ -40,17 +39,18 @@ void _server_api_get() {
 
 void _server_api_post() {
   String body = server_get_request_body();
-  DynamicJsonBuffer jsonBuffer;
-  JsonObject& root = jsonBuffer.parseObject(body);
+  
+  DynamicJsonDocument root(1024);
+  DeserializationError error = deserializeJson(root, body);
 
-  if(!root.success()){
+  if(error){
     server_send_error(500, F("Fail to parse json content"));
     return;
   }
 
   // --- Color ---
   if(root.containsKey("color")){
-    JsonObject& color = root["color"];
+    JsonObject color = root["color"];
     int red = color["red"];
     int green = color["green"];
     int blue = color["blue"];
@@ -60,13 +60,13 @@ void _server_api_post() {
 
   // --- fading ---
   if(root.containsKey("fading")){
-    JsonObject& fading = root["fading"];
+    JsonObject fading = root["fading"];
     boolean running = fading["running"];
     led_fading_set_running(running);
 
     // --- color1 ---
     if(fading.containsKey("color1")){
-      JsonObject& color1 = fading["color1"];
+      JsonObject color1 = fading["color1"];
 
       int red = color1["red"];
       int green = color1["green"];
@@ -77,7 +77,7 @@ void _server_api_post() {
 
     // --- color2 ---
     if(fading.containsKey("color2")){
-      JsonObject& color2 = fading["color2"];
+      JsonObject color2 = fading["color2"];
 
       int red = color2["red"];
       int green = color2["green"];

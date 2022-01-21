@@ -8,3 +8,5 @@ const int LED_STATUS = D0;
 const int LED_RED_PIN = D1;
 const int LED_GREEN_PIN = D3;
 const int LED_BLUE_PIN = D5;
+
+#define PWMRANGE 255
